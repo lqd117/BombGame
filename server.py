@@ -1,28 +1,30 @@
-from socketserver import BaseRequestHandler, TCPServer
+import socket
+import threading
 
-#指定接收消息的客户端ip列表
-target_clients = ["10.4.76.188"]
+bind_ip = "127.0.0.1"
+bind_port = 12345
 
-class EchoHandler(BaseRequestHandler):
-    def handle(self):
-        for target_client in target_clients:
-            if target_client in self.client_address:
-                print('Got connection from', self.client_address)
-                msg = self.request.recv(8192)
-                if not msg:
-                    break
-                ret_msg = bytes("自动回复：消息已收到！", encoding = "gbk")
-                self.request.send(ret_msg)
-                print(str(msg, encoding = "gbk"))
-                break
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#将套接字与指定的ip和端口相连
+server.bind((bind_ip, bind_port))
+#启动监听，并将最大连接数设为5
+server.listen(5)
+print "[*] listening on %s:%d" % (bind_ip, bind_port)
 
-if __name__ == '__main__':
-    from threading import Thread
-    NWORKERS = 16
-    #绑定socket服务端所在ip和端口号
-    serv = TCPServer(('', 20000), EchoHandler)
-    for n in range(NWORKERS):
-        t = Thread(target=serv.serve_forever)
-        t.daemon = True
-        t.start()
-    serv.serve_forever()
+#定义函数，回发信息给客户端
+def handle_client(client_socket):
+    #打印客户端发送的消息
+    request = client_socket.recv(1024)
+    print "[*] Received: %s" % request
+    #返回一个数据包，内容为ACK!
+    client_socket.send('ACK!')
+    client_socket.close()
+
+#服务端进入主循环，等待连接
+while True:
+    #当有连接时，将接收到的套接字存到client中，远程连接细节保存到addr中
+    client, addr = server.accept()
+    print "[*] Accepted connection from: %s:%d" % (addr[0], addr[1])
+    #创建新线程，回发信息给客户端
+    client_handler = threading.Thread(target=handle_client, args=(client,))
+    client_handler.start()
