@@ -48,3 +48,8 @@ class mssql:
         cur.execute(sql)
         self.conn.commit()
         self.conn.close()
+
+def main():
+    pass
+if __name__ == '__main__':
+    main()
