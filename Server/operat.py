@@ -1,123 +1,87 @@
-import lib
-import random,socket
-global HOST,USER,PWD,DB
-HOST,USER,PWD,DB = "39.107.241.25","SA","lqdLQD!!","BombGame"
-
-#创建房间时返回一个可以创建的房间id
-def findId():
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery("select rid from room where num = 0")
-    return ls[random.randint(0,len(ls)-1)][0]
-
-#改变某个id某个道具值,num为增量
-def change(id,name,num):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery("select " +name+" from person where id = "+str(id))
-    temp = int(ls[0][0]) + num
-    ms.ExecNonQuery("update person set " +name+" = "+str(temp)+" where id = "+str(id))
-
-#展示某个id的所有情况
-def display(id):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery("select * from person where id = "+str(id))
-    print(ls)
-    return ls
-
-#返回所有已被创建房间的状态
-def askroom():
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery("select * from room where num != 0")
-    return ls
-
-#返回所有在线ID状态
-def askAllId():
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery('select * from person where live = 1 or rid != 0')
-    return ls
-
-#删除某个ID记录
-def deletId(id:int):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ms.ExecNonQuery('delete from person where id = ' + str(id))
-
-#返回某一房间的状态
-def askoneroom(rid:int):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery('select * from room where rid = '+str(rid))
-    return ls[0]
-
-#改变某个id某个状态,num为变量
-def changeperson(id,name:str,num):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ms.ExecNonQuery("update person set " +name+" = "+str(num)+" where id = "+str(id))
-
-#改变某个房间的状态,num为变量
-def changeroom(rid:int,name:str,num:int):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ms.ExecNonQuery("update room set " + name + " = "+ str(num) + "where rid = "+str(rid))
+from lib import Mssql
+import random
 
 
-#根据账号密码得到人物ID
-def getId(user:str,pwd:str):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    id = ms.ExecQuery("select id from person where person.account = '"+ user +"' and person.pwd = '" + pwd+"'")
-    if len(id) == 0:return None
-    return id[0][0]
+class Operat(Mssql):
+    def __init__(self, HOST: str, USER: str, PWD: str, DB: str):
+        super(Operat, self).__init__(HOST, USER, PWD, DB)
 
-#创建新的人物
-def createNewId(user:str,pwd:str):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ms.ExecNonQuery("insert into person (name,rid,live,bomb,power,speed,account,pwd) values ( '"+ user + "',0,1,0,0,0,'"+ user +
-                    "','"+ pwd+ "')")
+    # 创建房间时返回一个可以创建的房间Rid
+    def _findCreateRid(self):
+        ls = self.ExecQuery("select rid from room where num = 0")
+        return int(ls[random.randint(0, len(ls) - 1)][0])
 
-#查找某个ID在哪个房间
-def findRid(id:int):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery('select rid from person where id = '+str(id))
-    return ls[0][0]
+    # 改变某个表某个道具int值,num为变量
+    def _changeInt(self, table: str, id: int, name: str, num: int):
+        string = 'rid' if table == 'room' else 'id'
+        self.ExecNonQuery(
+            "update {table} set {name} = {num} where {string} = {id}".format(table=table, name=name, num=num,
+                                                                             string=string, id=id))
 
-#查询某个房间有哪些id
-def findIdOfRoom(rid:int):
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ls = ms.ExecQuery('select id from person where rid = '+str(rid))
-    ls = [item[0] for item in ls]
-    return ls
+    # 改变某个表某个道具string值,num为变量
+    def _changeStr(self, table: str, id: int, name: str, num: str):
+        string = 'rid' if table == 'room' else 'id'
+        self.ExecNonQuery(
+            "update {table} set {name} = '{num}' where {string} = {id}".format(table=table, name=name, num=num,
+                                                                               string=string, id=id))
 
-#清空所有房间
-def clearRoom():
-    global HOST, USER, PWD, DB
-    ms = lib.mssql(host=HOST, user=USER, pwd=PWD, db=DB)
-    ms.ExecNonQuery('update room set num = 0,play = 0,map = null,owner = null')
-    ms.ExecNonQuery('update person set rid = 0')
+    # 改变某个id某个状态,num为增量
+    def _changePerson(self, id: int, name: str, num: int):
+        self.ExecNonQuery(
+            "update person set {name} = {name} + {num} where id = {id}".format(name=name, num=num, id=id))
 
-#向某个client发送数据(udp)
-def send(sendData,sendArr):
-    udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udpSocket.sendto(sendData.encode('utf-8'), sendArr)
-    udpSocket.shutdown(2)
-    udpSocket.close()
+    # 改变某个房间的状态,num为增量
+    def _changeRoom(self, rid: int, name: str, num: int):
+        self.ExecNonQuery(
+            "update room set {name} = {name} + {num} where rid = {rid}".format(name=name, num=num, rid=rid))
 
-import socket
+    # 展示某个id的所有情况
+    def _display(self, id: int):
+        ls = self.ExecQuery("select * from person where id = {id}".format(id=id))
+        return ls[0]
+
+    # 返回所有已被创建房间的状态
+    def _askAllCreatedRoom(self):
+        ls = self.ExecQuery("select * from room where num != 0")
+        return ls
+
+    # 返回所有在线ID名字
+    def _askAllId(self):
+        ls = self.ExecQuery("select name from person where live = 1 or rid != 0")
+        return ls
+
+    # 删除某个ID记录
+    def _deletId(self, id: int):
+        self.ExecNonQuery("delete from person where id = {id}".format(id=id))
+
+    # 根据账号密码得到人物ID
+    def _getId(self, user: str, pwd: str):
+        id = self.ExecQuery(
+            "select id from person where person.account = '{user}' and person.pwd = '{pwd}'".format(user=user, pwd=pwd))
+        if len(id) == 0: return None
+        return int(id[0][0])
+
+    # 创建新的人物
+    def _createNewId(self, user: str, pwd: str):
+        self.ExecNonQuery("insert into person (name,rid,live,bomb,power,speed,account,pwd) " \
+                          "values ('{user}',0,1,0,0,0,'{user}','{pwd}')".format(user=user, pwd=pwd))
+
+    # 查找某个ID在哪个房间
+    def _findRid(self, id: int):
+        ls = self.ExecQuery("select rid from person where id = {id}".format(id=id))
+        return int(ls[0][0])
+
+    # 清空所有房间
+    def _clearAllRoom(self):
+        self.ExecNonQuery('update room set num = 0,play = 0,map = null,owner = null')
+        self.ExecNonQuery('update person set rid = 0')
+
+
 def main():
-    #udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    #send(udpSocket,"hello",('127.0.0.1',20000))
-    #changeperson(9,'rid',277)
+    c = Operat("39.107.241.25", "SA", "lqdLQD!!", "BombGame")
+    print(c._askAllCreatedRoom())
+    pass
 
-    print(askAllId())
-    print(askroom())
 
 if __name__ == '__main__':
     main()

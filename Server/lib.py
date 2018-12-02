@@ -1,55 +1,33 @@
 import pymssql
-class mssql:
-    def __init__(self,host,user,pwd,db):
-        self.host = host
-        self.user = user
-        self.pwd = pwd
-        self.db = db
 
-    def __GetConnect(self):
-        if not self.db:
-            raise (NameError, "没有设置数据库信息")
-        self.conn = pymssql.connect(host=self.host, user=self.user, password=self.pwd, database=self.db, charset="utf8")
-        cur = self.conn.cursor()
-        if not cur:
+
+class Mssql(object):
+    def __init__(self, host: str, user: str, pwd: str, db: str):
+        self.conn = pymssql.connect(host=host, user=user, password=pwd, database=db, charset="utf8")
+        self.cur = self.conn.cursor()
+        if not self.cur:
             raise (NameError, "连接数据库失败")
-        else:
-            return cur
 
-    def ExecQuery(self, sql):
+    def ExecQuery(self, sql: str):
         """
         执行查询语句
         返回的是一个包含tuple的list，list的元素是记录行，tuple的元素是每行记录的字段
-
-        调用示例：
-                ms = MSSQL(host="localhost",user="sa",pwd="123456",db="PythonWeiboStatistics")
-                resList = ms.ExecQuery("SELECT id,NickName FROM WeiBoUser")
-                for (id,NickName) in resList:
-                    print str(id),NickName
         """
-        cur = self.__GetConnect()
-        cur.execute(sql)
-        resList = cur.fetchall()
-        # 查询完毕后必须关闭连接
-        self.conn.close()
+        self.cur.execute(sql)
+        resList = self.cur.fetchall()
         return resList
 
-    def ExecNonQuery(self, sql):
-        """
-        执行非查询语句
-
-        调用示例：
-            cur = self.__GetConnect()
-            cur.execute(sql)
-            self.conn.commit()
-            self.conn.close()
-        """
-        cur = self.__GetConnect()
-        cur.execute(sql)
+    def ExecNonQuery(self, sql: str):
+        self.cur.execute(sql)
         self.conn.commit()
+
+    def close(self):
         self.conn.close()
+
 
 def main():
     pass
+
+
 if __name__ == '__main__':
     main()

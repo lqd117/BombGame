@@ -1,102 +1,167 @@
+from operat import Operat
+import select
 import socket
-import threading
-import operat
-
-bind_ip = "127.0.0.1"
-bind_port = 40000
-
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#将套接字与指定的ip和端口相连
-server.bind((bind_ip, bind_port))
-#启动监听，并将最大连接数设为5
-server.listen(5)
-print ("[*] listening on %s:%d" %(bind_ip, bind_port))
-
-#存放每个ID的IP地址和端口号
-global allIp
-allIp = {}
 
 
-#定义函数，回发信息给客户端
-def handle_client(client_socket,addr):
-    global allIp
-    request = client_socket.recv(1024)
-    request = request.decode('utf-8')
-    request = request.split(';')
-    id = operat.getId(request[0], request[1])
-    if id is None:
-        operat.createNewId(request[0], request[1])
-        id = operat.getId(request[0], request[1])
-    client_socket.send('success'.encode())
-    operat.changeperson(id,'live',1)
-    allIp[id] = (addr[0],20000)
-    while(1):
-        #打印客户端发送的消息
-        request = client_socket.recv(1024)
-        request = request.decode('utf-8')
-        print ("[*] Received: %s" % request)
-        request = request.split(';')
-        print(request)
-        #返回一个数据包，内容为ACK!
-        if request[0] == "end":
-            operat.changeperson(id,'live',0)
-            client_socket.send('good-bye'.encode())
-            client_socket.shutdown(2)
-            client_socket.close()
-            break
-        elif request[0] == "createRoom":
-            rid = operat.findId()
-            operat.changeperson(id,'rid',rid)
-            operat.changeroom(rid,'num',1)
-            operat.changeroom(rid,'map',1)
-            operat.changeroom(rid,'owner',id)
-            client_socket.send('success'.encode())
-        elif request[0] == "askAllRoom":
-            ls = operat.askroom()
-            temp = []
-            for x in ls:
-                for y in x:
-                    temp.append(y)
-            if len(temp):
-                client_socket.send(str(temp)[1:-1].encode())
-            else:
-                client_socket.send("No".encode())
-        elif request[0] == "startGame":
+class GameServer(Operat):
+    def __init__(self, HOST: str, USER: str, PWD: str, DB: str, port=20000):
+        super(GameServer, self).__init__(HOST, USER, PWD, DB)
+        self.listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.listener.bind(("127.0.0.1", port))
+        self.read_list = [self.listener]
+        self.write_list = []
+        self.id_ip_port = {}  # 记录每个id可以接受广播的ip_por
+        self.players = [[] for _ in range(401)]  # 存放每个房间的ip_port
+        self.playersId = [[] for _ in range(401)]  # 存放每个房间玩家id、名字和位置
+        self.playersPos = [[1 for i in range(0, 9)] for _ in range(401)]  # 每个房间每个位置是否空余
+        self.playersLive = []  # 存放所有在线玩家的id和名字
+        self.map = ['1' for _ in range(401)]  # 存放每个房间的题目信息
+        self._clearAllRoom()
+
+    # 接受可以广播的ip_port
+    def listen(self, addr, id):
+        self.players[0].append(addr)
+        self.id_ip_port[int(id)] = addr
+
+    # 登录
+    def logIn(self, addr, user, pwd):
+        id = self._getId(user, pwd)
+        if id is None:
+            self._createNewId(user, pwd)
+            id = self._getId(user, pwd)
+        self._changePerson(id, 'live', 1)
+        self._changeRoom(0, 'num', 1)
+        name = self._display(id)[1]
+        self.playersLive.append((id, name))
+        self.listener.sendto("{id};{name}".format(id=id, name=name).encode(), addr)
+
+    # 退出游戏
+    def quitGame(self, addr, id, name):
+        del self.players[0][self.players[0].index(self.id_ip_port[int(id)])]
+        del self.playersLive[self.playersLive.index((int(id), name))]
+        self._changePerson(int(id), 'live', 0)
+        self._changeRoom(0, 'num', -1)
+
+    # 退出房间
+    def quitRoom(self, addr, rid, id, name, pos):
+        del self.players[int(rid)][self.players[int(rid)].index(self.id_ip_port[int(id)])]
+        del self.playersId[int(rid)][self.playersId[int(rid)].index((int(id), name, int(pos)))]
+        self.players[0].append(self.id_ip_port[int(id)])
+        self.playersPos[int(rid)][int(pos)] = 1
+        self._changeRoom(int(rid), 'num', -1)
+        self._changePerson(int(id), 'rid', 0)
+        self._changeRoom(0, 'num', 1)
+        newOwnerId, newOwnerPos, newOwnerName = 0, 0, ""
+        for i in range(1, 9):
+            if self.playersPos[int(rid)][i] == 1:
+                newOwnerPos = i
+                break
+        for item in self.playersId[int(rid)]:
+            if item[2] == newOwnerPos:
+                newOwnerId, newOwnerName = item[0], item[1]
+                break
+        self._changeInt('room', int(rid), 'owner', newOwnerId)
+        for item in self.players[int(rid)]:
+            self.listener.sendto('quit;{id};{pos}'.format(id=id, pos=newOwnerPos).encode(), item)
+        for item in self.players[0]:
+            self.listener.sendto('quitRoom;{rid}'.format(rid=int(rid)).encode(), item)
+
+    # 开始游戏
+    def startGame(self, addr, rid):
+        self._changeInt('room', int(rid), 'play', 1)
+        for item in self.players[int(rid)]:
+            self.listener.sendto('startGame'.encode(), item)
+
+    # 向某个房间广播信息
+    def broadcastInformation(self, addr, rid, string):
+        for item in self.players[int(rid)]:
+            self.listener.sendto(string.encode(), item)
+
+    # 创建房间
+    def createRoom(self, addr, id, name):
+        rid = self._findCreateRid()
+        self.playersId[rid].append((int(id), name, 1))
+        self.players[rid].append(self.id_ip_port[int(id)])
+        self.playersPos[rid][1] = 0
+        self._changeInt('person', int(id), 'rid', rid)
+        self._changeInt('room', rid, 'owner', int(id))
+        self._changeRoom(rid, 'num', 1)
+        self.listener.sendto("{rid};1;{map}".format(rid=rid, map=self.map[rid]).encode(), addr)
+        for item in self.players[0]:
+            self.listener.sendto('createNewRoom;{rid};{map}'.format(rid=rid, map=self.map[rid]).encode(), item)
+
+    # 加入房间
+    def addRoom(self, addr, rid, id, name):
+        del self.players[0][self.players[0].index(self.id_ip_port[int(id)])]
+        pos = 0
+        for i in range(1, 9):
+            if self.playersPos[int(rid)][i] == 1:
+                pos = i
+                self.playersPos[int(rid)][i] = 0
+                break
+        self._changeRoom(int(rid), 'num', 1)
+        self._changeInt('person', int(id), 'rid', rid)
+        self.playersId[int(rid)].append((int(id), name, pos))
+        self.players[int(rid)].append(self.id_ip_port[int(id)])
+        string = ""
+        for item in self.playersId[int(rid)]:
+            string = string + item[1] + ":" + str(item[2])
+            string = string + '#'
+        self.listener.sendto("{pos};{map};{string}".format(pos=pos, map=self.map[int(rid)], string=string).encode(),
+                             addr)
+        for item in self.players[0]:
+            self.listener.sendto('addRoom;{rid}'.format(rid=int(rid)).encode(), item)
+
+    # 游戏数据传输
+    def gaming(self, addr, rid, string):
+        for item in self.players[int(rid)]:
+            self.listener.sendto(string.encode(), item)
+
+    # 广播大厅聊天信息
+    def sendText(self, addr, name, string):
+        for item in self.players[0]:
+            self.listener.sendto('text;{name};{string}'.format(name=name, string=string).encode(), item)
+
+    # 询问所有已创建房间信息
+    def askAllCreatedRoom(self, addr):
+        data = self._askAllCreatedRoom()
+        array = []
+        for x in data:
+            for y in x:
+                array.append(str(y))
+        string = ';'.join(array) if len(array) > 0 else 'NO'
+        self.listener.sendto(string.encode(), addr)
+
+    # 询问所有在线人物名字
+    def askAllLive(self, addr):
+        data = ';'.join([item[1] for item in self.playersLive])
+        self.listener.sendto(data.encode(), addr)
+
+    def run(self):
+        print('waiting')
+        try:
+            while True:
+                readable, writable, exceptional = (
+                    select.select(self.read_list, self.write_list, [])
+                )
+                for f in readable:
+                    if f is self.listener:
+                        msg, addr = f.recvfrom(1024)
+                        msg = msg.decode('utf-8')
+                        msg = msg.split(';')
+                        print(msg, addr, *msg[1:])
+                        getattr(self, msg[0])(addr, *msg[1:])
+
+        except KeyboardInterrupt as e:
+            print("222222222")
             pass
-        elif request[0] == "addRoom":
-            x = operat.askoneroom(int(request[1]))
-            y = int(x[1]) + 1
-            operat.changeroom(int(request[1]),'num',y)
-            print("-----------")
-            print(id,request[1])
-            operat.changeperson(id,'rid',int(request[1]))
-            print("------------")
-            client_socket.send('success'.encode())
-        elif request[0] == 'quitRoom':
-            rid = operat.findRid(id)
-            operat.changeperson(id,'rid',0)
-            x = operat.askoneroom(rid)
-            y = int(x[1]) - 1
-            operat.changeroom(rid,'num',y)
-            if id == int(operat.askoneroom(rid)[4]):
-                ls = []
-                if y != 0:
-                    ls = operat.findIdOfRoom(rid)
-                    operat.changeroom(rid,'owner',ls[0])
-                #需要通知房间中的人刷新
-                for item in ls:
-                    operat.send('fresh',allIp[item])
-            client_socket.send('success'.encode())
-        else:
-            client_socket.send('success'.encode())
 
 
-#服务端进入主循环，等待连接
-while True:
-    #当有连接时，将接收到的套接字存到client中，远程连接细节保存到addr中
-    client, addr = server.accept()
-    print ("[*] Accepted connection from: %s:%d" % (addr[0], addr[1]))
-    #创建新线程，回发信息给客户端
-    client_handler = threading.Thread(target=handle_client, args=(client,addr))
-    client_handler.start()
+def main():
+    c = GameServer("39.107.241.25", "SA", "lqdLQD!!", "BombGame")
+    c.run()
+    pass
 
+
+if __name__ == '__main__':
+    main()
