@@ -14,7 +14,8 @@ class LogIn():
     def go(self, client, GameClient):
         user = self.user_text.get()
         pwd = self.pwd_text.get()
-        client.append(GameClient(user, pwd))
+        client.append(GameClient())
+        client[0].init(user, pwd)
         print(client[0].id, client[0].name)
         self.root.destroy()
 

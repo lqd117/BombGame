@@ -1,4 +1,4 @@
-# 该文件是登录界面类
+# 该文件是大厅界面类
 import tkinter as tk
 import tkinter.messagebox
 from PIL import ImageTk, Image
@@ -44,15 +44,17 @@ class Hall():
     def allRoom(self, room):  # 更新房间信息,由client调用
         for i in range(1, 9):
             exec("self.buttonRoom{id}['state'] = tk.DISABLED".format(id=i))
+            exec("self.buttonRoomtext{id}.set('NO\\nROOM')".format(id=i))
         self.allRoomData = []  # 从client中选择可以进去的最多8个房间信息
         self.buttonid_rid = [0 for _ in range(8)]
         cnt = 0
-        for item in room:
+        for i in range(1,401):
             if cnt == 8:
                 break
-            if room[item][0] == 8:
+            if room[i][0] == 0:
                 continue
-            self.allRoomData.append([item, room[item][0], room[item][1]])  # 分别是rid,num,map
+            print(room[i])
+            self.allRoomData.append([i, room[i][0], room[i][1]])  # 分别是rid,num,map
             cnt += 1
         for i in range(1, cnt + 1):
             exec("self.buttonRoom{id}['state'] = tk.NORMAL".format(id=i))
@@ -165,7 +167,7 @@ class Hall():
 
         self.allRoom(client.room)
 
-        tk.mainloop()
+
 
 
 def main():

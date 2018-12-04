@@ -16,6 +16,8 @@ class GameServer(Operat):
         self.playersPos = [[1 for i in range(0, 9)] for _ in range(401)]  # 每个房间每个位置是否空余
         self.playersLive = []  # 存放所有在线玩家的id和名字
         self.map = ['1' for _ in range(401)]  # 存放每个房间的题目信息
+        self.personColor = {}  # 存放玩家的颜色
+        self.roomOwner = [0 for _ in range(401)]  # 存放每个房间的房主位置
         self._clearAllRoom()
 
     # 接受可以广播的ip_port
@@ -33,19 +35,32 @@ class GameServer(Operat):
         self._changeRoom(0, 'num', 1)
         name = self._display(id)[1]
         self.playersLive.append((id, name))
-        self.listener.sendto("{id};{name}".format(id=id, name=name).encode(), addr)
+        self.personColor[id] = 'red'
+        string = ''
+        for i in range(1, 401):
+            if len(self.playersId[i]) == 0:
+                continue
+            string += str(i) + ':' + str(len(self.playersId[i])) + ',' + self.map[i]
+            string += '#'
+        string = string[0:len(string) - 1]
+        self.listener.sendto("{id};{name};{string}".format(id=id, name=name, string=string).encode(), addr)
 
     # 退出游戏
     def quitGame(self, addr, id, name):
         del self.players[0][self.players[0].index(self.id_ip_port[int(id)])]
         del self.playersLive[self.playersLive.index((int(id), name))]
+        self.id_ip_port.pop(int(id), 0)
         self._changePerson(int(id), 'live', 0)
         self._changeRoom(0, 'num', -1)
 
     # 退出房间
     def quitRoom(self, addr, rid, id, name, pos):
         del self.players[int(rid)][self.players[int(rid)].index(self.id_ip_port[int(id)])]
-        del self.playersId[int(rid)][self.playersId[int(rid)].index((int(id), name, int(pos)))]
+        del self.playersId[int(rid)][self.playersId[int(rid)].index([int(id), name, int(pos)])]
+        for item in self.id_ip_port:
+            if int(item) == int(id):
+                continue
+            self.listener.sendto('quitRoom;{rid}'.format(rid=int(rid)).encode(), self.id_ip_port[item])
         self.players[0].append(self.id_ip_port[int(id)])
         self.playersPos[int(rid)][int(pos)] = 1
         self._changeRoom(int(rid), 'num', -1)
@@ -53,7 +68,7 @@ class GameServer(Operat):
         self._changeRoom(0, 'num', 1)
         newOwnerId, newOwnerPos, newOwnerName = 0, 0, ""
         for i in range(1, 9):
-            if self.playersPos[int(rid)][i] == 1:
+            if self.playersPos[int(rid)][i] == 0:
                 newOwnerPos = i
                 break
         for item in self.playersId[int(rid)]:
@@ -61,10 +76,10 @@ class GameServer(Operat):
                 newOwnerId, newOwnerName = item[0], item[1]
                 break
         self._changeInt('room', int(rid), 'owner', newOwnerId)
+        self.roomOwner[int(rid)] = newOwnerPos
+        print("the room {rid} owner is {pos}".format(rid=int(rid),pos=newOwnerPos))
         for item in self.players[int(rid)]:
-            self.listener.sendto('quit;{id};{pos}'.format(id=id, pos=newOwnerPos).encode(), item)
-        for item in self.players[0]:
-            self.listener.sendto('quitRoom;{rid}'.format(rid=int(rid)).encode(), item)
+            self.listener.sendto('quitRoomPos;{pos1};{pos}'.format(id=id,pos1=pos, pos=newOwnerPos).encode(), item)
 
     # 开始游戏
     def startGame(self, addr, rid):
@@ -80,15 +95,21 @@ class GameServer(Operat):
     # 创建房间
     def createRoom(self, addr, id, name):
         rid = self._findCreateRid()
-        self.playersId[rid].append((int(id), name, 1))
+        self.playersId[rid].append([int(id), name, 1])
+        del self.players[0][self.players[0].index(self.id_ip_port[int(id)])]
         self.players[rid].append(self.id_ip_port[int(id)])
         self.playersPos[rid][1] = 0
+        self.roomOwner[rid] = 1
         self._changeInt('person', int(id), 'rid', rid)
         self._changeInt('room', rid, 'owner', int(id))
         self._changeRoom(rid, 'num', 1)
         self.listener.sendto("{rid};1;{map}".format(rid=rid, map=self.map[rid]).encode(), addr)
-        for item in self.players[0]:
-            self.listener.sendto('createNewRoom;{rid};{map}'.format(rid=rid, map=self.map[rid]).encode(), item)
+        for item in self.id_ip_port:
+            if int(item) == int(id):
+                continue
+            self.listener.sendto('createNewRoom;{rid};{map}'.format(rid=rid, map=self.map[rid]).encode(),
+                                 self.id_ip_port[int(item)])
+        self.personColor[int(id)] = 'red'
 
     # 加入房间
     def addRoom(self, addr, rid, id, name):
@@ -101,26 +122,51 @@ class GameServer(Operat):
                 break
         self._changeRoom(int(rid), 'num', 1)
         self._changeInt('person', int(id), 'rid', rid)
-        self.playersId[int(rid)].append((int(id), name, pos))
+        self.playersId[int(rid)].append([int(id), name, pos])
         self.players[int(rid)].append(self.id_ip_port[int(id)])
         string = ""
         for item in self.playersId[int(rid)]:
-            string = string + item[1] + ":" + str(item[2])
-            string = string + '#'
-        self.listener.sendto("{pos};{map};{string}".format(pos=pos, map=self.map[int(rid)], string=string).encode(),
-                             addr)
-        for item in self.players[0]:
-            self.listener.sendto('addRoom;{rid}'.format(rid=int(rid)).encode(), item)
+            string = string + str(item[2]) + ":" + str(item[1]) + "," + self.personColor[item[0]]
+            if item != self.playersId[int(rid)][-1]:
+                string = string + '#'
+        self.listener.sendto("{pos};{map};{string};{owner}".format(pos=pos, map=self.map[int(rid)], string=string,
+                                                                   owner=self.roomOwner[int(rid)]).encode(), addr)
+        for item in self.id_ip_port:
+            if int(item) == int(id):
+                continue
+            self.listener.sendto('addRoom;{rid}'.format(rid=int(rid)).encode(), self.id_ip_port[item])
+
+        for item in self.players[int(rid)]:
+            if item != self.id_ip_port[int(id)]:
+                self.listener.sendto("addPerson;{pos};{name};{color}".format(pos=pos, name=name, color='red').encode(),
+                                     item)
 
     # 游戏数据传输
     def gaming(self, addr, rid, string):
         for item in self.players[int(rid)]:
             self.listener.sendto(string.encode(), item)
 
-    # 广播大厅聊天信息
-    def sendText(self, addr, name, string):
-        for item in self.players[0]:
+    # 广播聊天信息
+    def sendText(self, addr, name, string, id):
+        for item in self.players[int(id)]:
             self.listener.sendto('text;{name};{string}'.format(name=name, string=string).encode(), item)
+
+    # 广播房间中人物颜色信息
+    def sendColor(self, id, rid, pos, color):
+        self.roomPersonColor[int(id)] = color
+        for item in self.players[int(rid)]:
+            self.listener.sendto('color;{pos};{color}'.format(pos=pos, colorId=color).encode(), item)
+
+    # 广播房间地图信息
+    def sendMap(self, rid, mapData):
+        self.map[int(rid)] = mapData
+        for item in self.id_ip_port:
+            self.listener.sendto('map;{rid};{map}'.format(rid=rid, map=mapData).encode(), self.id_ip_port[item])
+
+    # 广播踢人信息
+    def sendKick(self, rid, pos):
+        for item in self.players[int(rid)]:
+            self.listener.sendto('kick;{pos}'.format(pos=pos).encode(), item)
 
     # 询问所有已创建房间信息
     def askAllCreatedRoom(self, addr):
@@ -151,6 +197,7 @@ class GameServer(Operat):
                         msg = msg.split(';')
                         print(msg, addr, *msg[1:])
                         getattr(self, msg[0])(addr, *msg[1:])
+                        print(self.id_ip_port, self.players[0])
 
         except KeyboardInterrupt as e:
             print("222222222")
