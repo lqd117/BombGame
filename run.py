@@ -13,6 +13,7 @@ from gui.logIn import LogIn
 from test.client import GameClient
 from gui.hall import Hall
 from gui.roomFrame import RoomFrame
+from main import game
 import threading
 
 
@@ -24,16 +25,25 @@ def main():
     print(client.id, client.name)
     hall = Hall()
     roomFrame = RoomFrame()
-    thread = threading.Thread(target=client.run, args=(hall,roomFrame))
+    bombgame = game()
+    thread = threading.Thread(target=client.run, args=(hall,roomFrame,bombgame))
     thread.start()
 
     while 1:
         if client.choose == 0:
             hall.run(client)
-            hall.root.mainloop()
         elif client.choose == 1:
             roomFrame.run(client)
-            roomFrame.root.mainloop()
+        elif client.choose == 2:
+            bombgame.init(client.sum)
+            bombgame.run(client)
+
+    # client = GameClient()
+    # client.init('xiaoming', 'xiaoming')
+    # client.pos = 1
+    # thread = threading.Thread(target=client.run, args=(hall, roomFrame, bombgame))
+    # thread.start()
+    # bombgame.run(client)
 
 
 

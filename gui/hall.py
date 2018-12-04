@@ -167,7 +167,7 @@ class Hall():
 
         self.allRoom(client.room)
 
-
+        self.root.mainloop()
 
 
 def main():

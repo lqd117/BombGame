@@ -35,7 +35,8 @@ class RoomFrame():
         self.root.destroy()
 
     def startGame(self, client):
-        # client.sendStartGame()
+        client.sendStartGame()
+        self.root.destroy()
         pass
 
     def runText(self, string=""):  # 用于更新聊天内容
@@ -248,6 +249,7 @@ class RoomFrame():
 
         self.freshAll(client)
 
+        self.root.mainloop()
 
 def main():
     pass

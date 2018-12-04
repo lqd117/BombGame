@@ -87,10 +87,6 @@ class GameServer(Operat):
         for item in self.players[int(rid)]:
             self.listener.sendto('startGame'.encode(), item)
 
-    # 向某个房间广播信息
-    def broadcastInformation(self, addr, rid, string):
-        for item in self.players[int(rid)]:
-            self.listener.sendto(string.encode(), item)
 
     # 创建房间
     def createRoom(self, addr, id, name):
@@ -142,9 +138,11 @@ class GameServer(Operat):
                                      item)
 
     # 游戏数据传输
-    def gaming(self, addr, rid, string):
+    def gaming(self, addr, rid, pos,flag):
+        print(rid,pos,flag)
         for item in self.players[int(rid)]:
-            self.listener.sendto(string.encode(), item)
+            print(item)
+            self.listener.sendto("gaming;{pos};{flag}".format(pos=pos,flag=flag).encode(), item)
 
     # 广播聊天信息
     def sendText(self, addr, name, string, id):
@@ -152,21 +150,31 @@ class GameServer(Operat):
             self.listener.sendto('text;{name};{string}'.format(name=name, string=string).encode(), item)
 
     # 广播房间中人物颜色信息
-    def sendColor(self, id, rid, pos, color):
+    def sendColor(self,addr, id, rid, pos, color):
         self.roomPersonColor[int(id)] = color
         for item in self.players[int(rid)]:
             self.listener.sendto('color;{pos};{color}'.format(pos=pos, colorId=color).encode(), item)
 
     # 广播房间地图信息
-    def sendMap(self, rid, mapData):
+    def sendMap(self,addr, rid, mapData):
         self.map[int(rid)] = mapData
         for item in self.id_ip_port:
             self.listener.sendto('map;{rid};{map}'.format(rid=rid, map=mapData).encode(), self.id_ip_port[item])
 
     # 广播踢人信息
-    def sendKick(self, rid, pos):
+    def sendKick(self,addr, rid, pos):
         for item in self.players[int(rid)]:
             self.listener.sendto('kick;{pos}'.format(pos=pos).encode(), item)
+
+    # 广播死亡信息
+    def sendDead(self,addr,rid,pos):
+        for item in self.players[int(rid)]:
+            self.listener.sendto('dead;{pos}'.format(pos=pos).encode(), item)
+
+    # 广播开始游戏消息
+    def sendStartGame(self,addr,rid):
+        for item in self.players[int(rid)]:
+            self.listener.sendto('sendStartGame'.encode(), item)
 
     # 询问所有已创建房间信息
     def askAllCreatedRoom(self, addr):

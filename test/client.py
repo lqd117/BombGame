@@ -15,6 +15,8 @@ class GameClient():
         self.choose = 0  # 当前界面是哪个类，0：大厅，1：房间，2：游戏
         self.nowRoomPerson = []  # 存放当前房间位置是否有人,名字和所选颜色(flag,name,color)
         self.owner = ''  # 存放房主位置
+        self.live = 1 #判断自己是否死亡1：存活，2：死亡
+        self.sum = 0 #记录房间中有几人
 
     def init(self, user, pwd):
         self.ip_port = ("127.0.0.1", 20000)  # 服务端ip和port
@@ -37,10 +39,11 @@ class GameClient():
         self.choose = 0  # 当前界面是哪个类，0：大厅，1：房间，2：游戏
         self.nowRoomPerson = []  # 存放当前房间位置是否有人,名字和所选颜色(flag,name,color)
         self.owner = -1  # 存放房主位置
+        self.sendLiveFlag = 0 #判断是否发送了死亡信息
 
     # 接受并处理广播的信息，这里包括游戏中的信息,函数外开启线程
 
-    def run(self, hall, roomFrame):
+    def run(self, hall, roomFrame,bombGame):
         while True:
             data = self.listenerRecv.recv(1024).decode('utf-8').split(';')
             print(data)
@@ -106,6 +109,20 @@ class GameClient():
             if data[0] == 'kick':
                 if self.pos == int(data[1]):
                     self.quitRoom()
+                    roomFrame.root.stop()
+            if data[0] == 'gaming':
+                print(data)
+                bombGame.freshPlayer(int(data[1]),int(data[2]))
+            if data[0] == 'dead':
+                if self.pos != int(data[1]):
+                    bombGame.freshDead(int(data[1]))
+            if data[0] == 'sendStartGame':
+                self.choose = 2
+                for item in self.nowRoomPerson:
+                    if item[0] == 1:
+                        self.sum += 1
+               # if self.owner != self.pos:
+               #     roomFrame.root.destroy()
 
     # 请求所有已创建的房间信息
     def askAllCreatedRoom(self):
@@ -174,9 +191,9 @@ class GameClient():
         self.choose = 2
 
     # 信息传输
-    def gaming(self, string):
+    def gamingSend(self, flag):
         self.listenerSend.sendto(
-            'gaming;{rid};{pos}:{string}'.format(rid=self.rid, pos=self.pos, string=string).encode(), self.ip_port)
+            'gaming;{rid};{pos};{flag}'.format(rid=self.rid, pos=self.pos, flag=flag).encode(), self.ip_port)
 
     # 发送聊天信息
     def sendText(self, string):
@@ -197,8 +214,15 @@ class GameClient():
 
     # 发送踢人信息
     def sendKick(self, pos):
-        self.listenerSend.sendto('sendkick;{rid};{pos}'.format(rid=self.rid, pos=pos).encode(), self.ip_port)
+        self.listenerSend.sendto('sendKick;{rid};{pos}'.format(rid=self.rid, pos=pos).encode(), self.ip_port)
 
+    # 发送自己死亡信息
+    def sendDead(self):
+        self.listenerSend.sendto('sendDead;{rid};{pos}'.format(rid=self.rid,pos=self.pos).encode(),self.ip_port)
+
+    # 发送游戏开始信息
+    def sendStartGame(self):
+        self.listenerSend.sendto('sendStartGame;{rid}'.format(rid=self.rid).encode(),self.ip_port)
 
 def gaming(c):
     c.run()
