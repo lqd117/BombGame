@@ -79,7 +79,7 @@ class GameClient():
                 if self.choose == 0:
                     hall.allRoom(self.room)
             if data[0] == 'addPerson':
-                self.nowRoomPerson[int(data[1])] = [1, data[2], data[3]]
+                self.nowRoomPerson[int(data[1])-1] = [1, data[2], data[3]]
                 print(self.pos,self.owner)
                 if self.pos == self.owner:
                     roomFrame.freshNewPerson(1,int(data[1]), data[2], data[3])
@@ -114,15 +114,16 @@ class GameClient():
                 print(data)
                 bombGame.freshPlayer(int(data[1]),int(data[2]))
             if data[0] == 'dead':
+                bombGame.alivenum -= 1
                 if self.pos != int(data[1]):
                     bombGame.freshDead(int(data[1]))
             if data[0] == 'sendStartGame':
-                self.choose = 2
-                for item in self.nowRoomPerson:
-                    if item[0] == 1:
-                        self.sum += 1
-               # if self.owner != self.pos:
-               #     roomFrame.root.destroy()
+                if self.pos == int(data[1]):
+                    self.choose = 2
+                    for item in self.nowRoomPerson:
+                        if item[0] == 1:
+                            self.sum += 1
+                    bombGame.alivenum = self.sum
 
     # 请求所有已创建的房间信息
     def askAllCreatedRoom(self):
@@ -222,7 +223,7 @@ class GameClient():
 
     # 发送游戏开始信息
     def sendStartGame(self):
-        self.listenerSend.sendto('sendStartGame;{rid}'.format(rid=self.rid).encode(),self.ip_port)
+        self.listenerSend.sendto('sendStartGame;{rid};{pos}'.format(rid=self.rid,pos=self.pos).encode(),self.ip_port)
 
 def gaming(c):
     c.run()

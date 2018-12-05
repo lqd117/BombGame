@@ -15,6 +15,7 @@ from gui.hall import Hall
 from gui.roomFrame import RoomFrame
 from main import game
 import threading
+import pygame
 
 
 def main():
@@ -25,10 +26,10 @@ def main():
     print(client.id, client.name)
     hall = Hall()
     roomFrame = RoomFrame()
+    pygame.init()
     bombgame = game()
     thread = threading.Thread(target=client.run, args=(hall,roomFrame,bombgame))
     thread.start()
-
     while 1:
         if client.choose == 0:
             hall.run(client)
@@ -37,6 +38,7 @@ def main():
         elif client.choose == 2:
             bombgame.init(client.sum)
             bombgame.run(client)
+
 
     # client = GameClient()
     # client.init('xiaoming', 'xiaoming')

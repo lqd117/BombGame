@@ -4,7 +4,10 @@ import tkinter.messagebox
 from PIL import ImageTk, Image
 import tkinter.font as tkFont
 import os
+import threading
 
+import inspect
+import ctypes
 
 class RoomFrame():
     def __init__(self):
@@ -25,6 +28,7 @@ class RoomFrame():
         self.arrButtonColor = ''  # 用来存放按钮颜色
         self.labelMap = ''  # 用来显示地图
         self.mapName = ['乾', '震', '坎', '艮', '坤', '巽', '离', '兑']  # 八个地图名字
+        self.start = 0 # 用来判断是否开始游戏
 
     def closeWindow(self):
         tkinter.messagebox.showerror(message="Don't close from here")
@@ -37,7 +41,6 @@ class RoomFrame():
     def startGame(self, client):
         client.sendStartGame()
         self.root.destroy()
-        pass
 
     def runText(self, string=""):  # 用于更新聊天内容
         self.allText.set(string)
@@ -71,6 +74,7 @@ class RoomFrame():
         self.freshPersonColor(pos, color)
 
     def freshNewOwner(self,room):
+        exec("self.buttonStart['state'] = tk.NORMAL")
         for i in range(1,9):
             exec("self.buttonMap{id}['state'] = tk.NORMAL".format(id=i))
         for i in range(0,8):
@@ -101,10 +105,12 @@ class RoomFrame():
         exec("self.labelMap.image = photo")
 
     def freshAll(self, client):
+        #exec("self.buttonStart['state'] = tk.DISABLED")
         for i in range(1, 9):
             exec("self.buttonPerson{id}['state'] = tk.DISABLED".format(id=i))
             exec("self.buttonMap{id}['state'] = tk.DISABLED".format(id=i))
         if client.owner == client.pos:
+            exec("self.buttonStart['state'] = tk.NORMAL")
             for i in range(0, 8):
                 exec("self.buttonMap{id}['state'] = tk.NORMAL".format(id=i + 1))
                 if client.nowRoomPerson[i][0] == 0:
@@ -132,6 +138,7 @@ class RoomFrame():
             exec("self.buttonPerson{id}.image = photo{id}".format(id=i + 1))
 
     def run(self, client):
+        self.start = 0
         self.root = tk.Tk()
         self.canvas = tk.Canvas(self.root, width=950, height=750, bd=0, highlightthickness=0)
         self.root.protocol('WM_DELETE_WINDOW', self.closeWindow)
@@ -250,6 +257,7 @@ class RoomFrame():
         self.freshAll(client)
 
         self.root.mainloop()
+
 
 def main():
     pass

@@ -9,7 +9,7 @@ import prop
 
 
 def main():
-    player_num = 4;
+    player_num = 4
     a = game(player_num)
     a.run()
 
@@ -110,8 +110,11 @@ class game():
         self.Avatar_player1 = ''
         self.Avatar_player2 = ''
 
+        self.alivenum = 0
+
 
     def init(self,player_num):
+
         self.start_game = True
         self.choose_scene = False
         self.play_game = False
@@ -226,7 +229,6 @@ class game():
 
     def freshDead(self,pos):
         exec("self.player{pos}.alive = False".format(pos=pos))
-
     def set_player_pos(self):
         # 加载所有人物
         self.player1 = player.player(self.main_size, "images/player1.png", [1, 1])
@@ -263,7 +265,7 @@ class game():
             you = self.player7
         if client.pos == 8:
             you = self.player8
-        while self.play_game:  # 游戏战斗界面
+        while self.alivenum > 1:  # 游戏战斗界面
             for event in pygame.event.get():
                 if event.type == QUIT:
                     pygame.quit()
@@ -341,14 +343,10 @@ class game():
             pygame.display.update()
             self.clock.tick(60)
 
-        while self.end_game:
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    exit()
-                else:
-                    self.screen.blit(self.end_game_scene, (0, 0))
-            pygame.display.flip()
-            self.clock.tick(60)
+
+        client.choose = 1
+        self.screen = pygame.display.set_mode((1,1))
+       # pygame.quit()
 
     def mapchange(self, choose):
         self.map_choose = choose

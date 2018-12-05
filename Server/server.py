@@ -172,9 +172,9 @@ class GameServer(Operat):
             self.listener.sendto('dead;{pos}'.format(pos=pos).encode(), item)
 
     # 广播开始游戏消息
-    def sendStartGame(self,addr,rid):
+    def sendStartGame(self,addr,rid,pos):
         for item in self.players[int(rid)]:
-            self.listener.sendto('sendStartGame'.encode(), item)
+            self.listener.sendto('sendStartGame;{pos}'.format(pos=pos).encode(), item)
 
     # 询问所有已创建房间信息
     def askAllCreatedRoom(self, addr):
