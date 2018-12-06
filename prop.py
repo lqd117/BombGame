@@ -1,6 +1,5 @@
-from random import randint
 from Map import *
-
+import random
 prop_list = []
 
 # 种类a, b, c分别代表加炸弹数, 加火力, 加炸弹数三种道具
@@ -10,11 +9,12 @@ class prop():
 		self.pos = pos
 
 
-def create_prop():		# 初始化道具种类及位置
+def create_prop(seed):		# 初始化道具种类及位置
+	random.seed(seed)
 	for i in range(len(Map)):
 		for j in range(len(Map[0])):
 			if Map[i][j] == "@":
-				r = randint(1, 10)
+				r = random.randint(1, 10)
 				if 1 <= r <= 3:
 					if r == 1:
 						new_prop = prop("a", i * 100 + j)

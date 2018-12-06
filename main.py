@@ -6,7 +6,10 @@ from Map import *
 import player
 import bomb
 import prop
-
+import time
+from prop import prop_list
+from player import player_list
+from bomb import bomb_list,explode_bomb_list
 
 def main():
     player_num = 4
@@ -92,6 +95,7 @@ class game():
         self.add_bomb_prop_image = ''
         self.add_fire_num_prop_image = ''
         self.speed_up_prop_image = ''
+        self.add_score_prop_image = ''
 
         # 结束游戏背景:
         self.end_game_scene = ''
@@ -110,24 +114,39 @@ class game():
         self.Avatar_player1 = ''
         self.Avatar_player2 = ''
 
+        self.sure_to_restart = False
+        self.map_choose = 0
+
+        self.player1 = ''
+        self.player2 = ''
+        self.player3 = ''
+        self.player4 = ''
+
         self.alivenum = 0
 
 
-    def init(self,player_num):
 
+    def init(self,nowRoomPerson):
+        pygame.init()
+        Map = []#清空地图
         self.start_game = True
         self.choose_scene = False
         self.play_game = False
         self.show_information = False
         self.end_game = False
+        self.sure_to_restart = False
+        self.map_choose = 0
 
         self.bg_size = 950, 750  # 整个游戏界面的大小（包括战场和道具栏）
         self.main_size = 750, 750  # 战场的大小
         self.element_width, self.element_height = 50, 50  # 人物的大小
         self.screen = pygame.display.set_mode(self.bg_size)
         self.clock = pygame.time.Clock()
-        self.score_font = pygame.font.Font(None, 24)  # 字体
-        self.player_num = player_num
+        self.score_font = pygame.font.Font(None, 22)  # 字体
+        self.player_num = 0
+        for item in nowRoomPerson:
+            if item[0] == 1:
+                self.player_num += 1
 
         self.bg_image1 = pygame.image.load("images/background.jpg").convert()
         self.bg_image2 = pygame.image.load("images/scene_choose.jpg").convert()
@@ -191,33 +210,50 @@ class game():
         self.add_bomb_prop_image = pygame.image.load("images/add_bomb_prop.png").convert_alpha()
         self.add_fire_num_prop_image = pygame.image.load("images/add_fire_num_prop.png").convert_alpha()
         self.speed_up_prop_image = pygame.image.load("images/speed_up_prop.png").convert_alpha()
+        self.add_score_prop_image = pygame.image.load("images/add_score_prop.png").convert_alpha()
+
+        # 得分框：
+        self.score = pygame.image.load("images/score.png").convert_alpha()
+        self.score = pygame.transform.smoothscale(self.score, (175, 175))
 
         # 结束游戏背景:
-        self.end_game_scene = pygame.image.load("images/end_game_scene.jpg").convert()
+        self.end_game_scene = pygame.image.load("images/End_game.png").convert_alpha()
         self.end_game_scene = pygame.transform.smoothscale(self.end_game_scene, (950, 750))
-
-        # 返回按钮
-        self.return_game = pygame.image.load("images/return.png").convert_alpha()
-        self.return_game = pygame.transform.smoothscale(self.return_game, (700, 700))
 
         # 文本框
         self.frame = pygame.image.load("images/frame.png").convert_alpha()
         self.frame = pygame.transform.smoothscale(self.frame, (900, 700))
         # create_prop()	# 初始化所有道具的位置
 
-        # 人物
-        self.Avatar_player1 = pygame.image.load("images/player1.png").convert_alpha()
-        self.Avatar_player2 = pygame.image.load("images/player2.png").convert_alpha()
+        # 状态栏
+        self.play_game_status = pygame.image.load("images/status.png").convert_alpha()
+        self.play_game_status = pygame.transform.smoothscale(self.play_game_status, (120, 120))
+
+        # 状态栏人物头像：
+        for i in range(1, self.player_num + 1):
+            exec('self.player_{id}=pygame.image.load("images/status_player_{id}.png").convert_alpha()'.format(id=i))
+
+        self.player1 = player.player(self.main_size, "images/player_1.png", [1, 1])
+        self.player2 = player.player(self.main_size, "images/player_2.png", [13, 1])
+        self.player3 = player.player(self.main_size, "images/player_3.png", [1, 13])
+        self.player4 = player.player(self.main_size, "images/player_4.png", [13, 13])
+
         self.set_player_pos()
-
         pygame.display.set_caption("泡泡堂")
-
         pygame.mixer.music.load("sound/0.wav")
         pygame.mixer.music.set_volume(0.4)
 
     def freshPlayer(self,pos,flag):
         if flag < 5:
             exec("self.player{pos}.move({id})".format(pos=pos,id=flag))
+            if flag == 1:
+                exec("self.player{pos}.direction = 4".format(pos=pos))
+            if flag == 2:
+                exec("self.player{pos}.direction = 1".format(pos=pos))
+            if flag == 3:
+                exec("self.player{pos}.direction = 2".format(pos=pos))
+            if flag == 4:
+                exec("self.player{pos}.direction = 3".format(pos=pos))
         elif flag == 5:
             exec("bomb.add_bomb(self.player{pos})".format(pos=pos))
         elif flag == 6:
@@ -225,28 +261,37 @@ class game():
         elif flag == 7:
             exec("self.player{pos}.fire_num += 1".format(pos=pos))
         elif flag == 8:
-            exec("self.player{pos}.speed += .5".format(pos=pos))
+            exec("self.player{pos}.speed += 1".format(pos=pos))
+
 
     def freshDead(self,pos):
         exec("self.player{pos}.alive = False".format(pos=pos))
+
     def set_player_pos(self):
         # 加载所有人物
-        self.player1 = player.player(self.main_size, "images/player1.png", [1, 1])
-        self.player2 = player.player(self.main_size, "images/player2.png", [13, 1])
+        self.player1 = player.player(self.main_size, "images/player_1.png", [1, 1])
+        self.player2 = player.player(self.main_size, "images/player_2.png", [13, 1])
         player.player_list.append(self.player1)
         player.player_list.append(self.player2)
         if self.player_num >= 3:
-            self.player3 = player.player(self.main_size, "images/player3.png", [1, 13])
+            self.player3 = player.player(self.main_size, "images/player_3.png", [1, 13])
             player.player_list.append(self.player3)
         if self.player_num >= 4:
-            self.player4 = player.player(self.main_size, "images/player4.png", [13, 13])
+            self.player4 = player.player(self.main_size, "images/player_4.png", [13, 13])
             player.player_list.append(self.player4)
+
+    def display_status_bar(self):
+        pos = [[0, 0], [770, 220], [770, 350], [770, 480], [770, 610]]
+        pos1 = [[0, 0], [770, 220], [770, 350], [770, 480], [770, 610]]
+        for i in range(1, self.player_num + 1):
+            exec("self.screen.blit(self.play_game_status,({x},{y}))".format(x=pos[i][0], y=pos[i][1]))
+            exec("self.screen.blit(self.player_{id},({x},{y}))".format(id=i, x=pos[i][0], y=pos[i][1]))
 
     def run(self,client):
         pygame.mixer.music.play(-1)
 
         self.play_game = True
-        self.mapchange(1)
+        self.mapchange(int(client.map),int(client.seed))
 
         you = ''
         if client.pos == 1:
@@ -273,6 +318,11 @@ class game():
             # 取出所有键盘事件
             key_pressed = pygame.key.get_pressed()
 
+            #渲染前提前发送
+            if you.temp:
+                client.gamingSend(you.temp)
+                you.temp = 0
+
             # player1的动作，wasd移动，空格放炸弹
             # 人物的移动
             if you.alive:
@@ -295,46 +345,58 @@ class game():
                 client.gamingSend(you.temp)
                 you.temp = 0
 
-
-            fire_num1 = self.player1.get_fire_num()
-            bomb_num1 = self.player1.get_bomb_num()
-            speed1 = self.player1.get_speed()
-            fire_num2 = self.player2.get_fire_num()
-            bomb_num2 = self.player2.get_bomb_num()
-            speed2 = self.player2.get_speed()
-
             bomb.bomb_explode()  # 每次检查是否有炸弹爆炸
             self.screen.blit(self.battle_scene, (0, 0))
             self.draw_map()
 
-            # 状态栏人物
-            self.screen.blit(self.Avatar_player1, (800, 60))
-            self.screen.blit(self.Avatar_player2, (800, 460))
-            # 画道具
-            self.screen.blit(self.add_fire_num_prop_image, (800, 120))
-            self.screen.blit(self.add_bomb_prop_image, (800, 180))
-            self.screen.blit(self.speed_up_prop_image, (800, 240))
-            self.screen.blit(self.add_fire_num_prop_image, (800, 520))
-            self.screen.blit(self.add_bomb_prop_image, (800, 580))
-            self.screen.blit(self.speed_up_prop_image, (800, 640))
-            # 状态栏渲染
-            player1_fire_num = self.score_font.render("Number: %d" % fire_num1, True, (0, 0, 0))
-            player1_bomb_num = self.score_font.render("Number: %d" % bomb_num1, True, (0, 0, 0))
-            player1_speed = self.score_font.render("Number: %d" % speed1, True, (0, 0, 0))
-            player2_fire_num = self.score_font.render("Number: %d" % fire_num2, True, (0, 0, 0))
-            player2_bomb_num = self.score_font.render("Number: %d" % bomb_num2, True, (0, 0, 0))
-            player2_speed = self.score_font.render("Number: %d" % speed2, True, (0, 0, 0))
-            self.screen.blit(player1_fire_num, (860, 140))
-            self.screen.blit(player1_bomb_num, (860, 200))
-            self.screen.blit(player1_speed, (860, 260))
-            self.screen.blit(player2_fire_num, (860, 540))
-            self.screen.blit(player2_bomb_num, (860, 600))
-            self.screen.blit(player2_speed, (860, 660))
+            # 画状态栏
+            self.display_status_bar()
+            for i in range(1, self.player_num + 1):
+                exec("self.fire_num{x} = self.player{x}.get_fire_num()".format(x=i))
+                exec("self.bomb_num{x} = self.player{x}.get_bomb_num()".format(x=i))
+                exec("self.speed{x} = self.player{x}.get_speed()".format(x=i))
+            for i in range(1, self.player_num + 1):
+                exec('self.player{id}_fire_num = self.score_font.render("%d" % self.fire_num{x},True, (0, 0,0))'.format(
+                    id=i, x=i))
+                exec('self.player{id}_bomb_num = self.score_font.render("%d" % self.bomb_num{x},True, (0, 0,0))'.format(
+                    id=i, x=i))
+                exec('self.player{id}_speed = self.score_font.render("%d" % self.speed{x},True, (0, 0,0))'.format(id=i,
+                                                                                                                  x=i))
+            self.screen.blit(self.player1_fire_num, (860, 250))
+            self.screen.blit(self.player1_bomb_num, (860, 275))
+            self.screen.blit(self.player1_speed, (860, 300))
+            self.screen.blit(self.player2_fire_num, (860, 380))
+            self.screen.blit(self.player2_bomb_num, (860, 405))
+            self.screen.blit(self.player2_speed, (860, 430))
+            if (self.player_num > 2):
+                self.screen.blit(self.player3_fire_num, (860, 510))
+                self.screen.blit(self.player3_bomb_num, (860, 535))
+                self.screen.blit(self.player3_speed, (860, 560))
+            if (self.player_num > 3):
+                self.screen.blit(self.player4_fire_num, (860, 640))
+                self.screen.blit(self.player4_bomb_num, (860, 665))
+                self.screen.blit(self.player4_speed, (860, 690))
 
+            # 画分数栏:
+            self.screen.blit(self.score, (760, 20))
+            for i in range(1, self.player_num + 1):
+                exec("self.score_num{x} = self.player{x}.get_score()".format(x=i))
+            for i in range(1, self.player_num + 1):
+                exec('self.player{id}_score = self.score_font.render("%d" % self.score_num{x},True, (0, 0,0))'.format(
+                    id=i, x=i))
+            self.screen.blit(self.player1_score, (860, 55))
+            self.screen.blit(self.player2_score, (860, 90))
+            if (self.player_num > 2):
+                self.screen.blit(self.player3_score, (860, 125))
+            if (self.player_num > 3):
+                self.screen.blit(self.player4_score, (860, 160))
+
+            # 更新玩家状态
             alive_player_num = 0
             for each_player in player.player_list:  # 绘制出所有还存活的玩家
                 if each_player.alive:
-                    self.screen.blit(each_player.image, each_player.rect)
+                    temp = each_player.image.subsurface((0, (each_player.get_direction() - 1) * 48), (48, 48))
+                    self.screen.blit(temp, each_player.rect)
                     alive_player_num += 1
             if alive_player_num == 1:
                 self.play_game = False
@@ -342,13 +404,18 @@ class game():
 
             pygame.display.update()
             self.clock.tick(60)
-
-
+            if self.alivenum == 1:
+                time.sleep(2)
         client.choose = 1
         self.screen = pygame.display.set_mode((1,1))
+        for each_player in player.player_list:  # 绘制出所有还存活的玩家
+            if each_player.alive:
+                each_player.alive = False
+
+
        # pygame.quit()
 
-    def mapchange(self, choose):
+    def mapchange(self, choose,seed):
         self.map_choose = choose
         if self.map_choose == 1:
             self.battle_scene = self.battle_scene_one
@@ -366,9 +433,8 @@ class game():
             self.battle_scene = self.battle_scene_seven
         if self.map_choose != -1:
             set_bgm(self.map_choose)
-            set_Map(self.map_choose)
-            prop.create_prop()
-
+            Map_change(self.map_choose)
+            prop.create_prop(seed)
 
     def draw_map(self):
         for i in range(len(Map)):

@@ -82,10 +82,10 @@ class GameServer(Operat):
             self.listener.sendto('quitRoomPos;{pos1};{pos}'.format(id=id,pos1=pos, pos=newOwnerPos).encode(), item)
 
     # 开始游戏
-    def startGame(self, addr, rid):
+    def startGame(self, addr, rid,seed,pos):
         self._changeInt('room', int(rid), 'play', 1)
-        for item in self.players[int(rid)]:
-            self.listener.sendto('startGame'.encode(), item)
+        for item in self.id_ip_port:
+            self.listener.sendto('startGame;{rid};{seed};{pos}'.format(rid=rid,seed=seed,pos=pos).encode(), self.id_ip_port[item])
 
 
     # 创建房间
@@ -171,10 +171,6 @@ class GameServer(Operat):
         for item in self.players[int(rid)]:
             self.listener.sendto('dead;{pos}'.format(pos=pos).encode(), item)
 
-    # 广播开始游戏消息
-    def sendStartGame(self,addr,rid,pos):
-        for item in self.players[int(rid)]:
-            self.listener.sendto('sendStartGame;{pos}'.format(pos=pos).encode(), item)
 
     # 询问所有已创建房间信息
     def askAllCreatedRoom(self, addr):

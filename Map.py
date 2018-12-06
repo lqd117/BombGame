@@ -18,7 +18,7 @@
 
 # #-- 固定墙，不可被炸毁
 # @-- 普通墙， 炸弹可以炸毁
-# a,b,c-- 道具， 人可以拾取道具
+# &-- 道具， 人可以拾取道具
 # $-- 炸弹
 # %-- 正在爆炸的炸弹
 # 1, 2, 3, 4 代表四个方向的火焰
@@ -28,12 +28,12 @@ Map = []
 def change_map(pos, new_str):
 	Map[pos[0]] = Map[pos[0]][:pos[1]] + new_str + Map[pos[0]][pos[1] + 1:]
 
-def set_Map(selection_scene):
+def Map_change(selection_scene):
 	global Map
 	if selection_scene==1:
 		Map.extend([ \
 			"###############",
-			"#    @@ @ @@ @#",
+			"#    @@ @ @@  #",
 			"# #@# # # # #@#",
 			"#@@@ @  @@ @ @#",
 			"#@# # #@#@# #@#",
@@ -64,7 +64,7 @@ def set_Map(selection_scene):
 			"#@ #@   @##@@##",
 			"###  #      ###",
 			"#@ # # @@ @@#@#",
-			"#@@@##@# ## @ #",
+			"#  @@##@# ## @ #",
 			"###############" \
 			])
 	if selection_scene == 3:

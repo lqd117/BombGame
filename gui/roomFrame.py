@@ -39,7 +39,7 @@ class RoomFrame():
         self.root.destroy()
 
     def startGame(self, client):
-        client.sendStartGame()
+        client.startGame()
         self.root.destroy()
 
     def runText(self, string=""):  # 用于更新聊天内容
@@ -57,7 +57,7 @@ class RoomFrame():
 
     def sendMap(self, mapId, client):  # 用于发送地图信息
         print(self.mapName[mapId - 1])
-        # client.sendMap(self.mapName[mapId-1])
+        client.sendMap(mapId)
 
     def kickPerson(self, pos, client):  # 判断是否踢出此人
         if pos != client.pos:
@@ -104,8 +104,11 @@ class RoomFrame():
         exec("self.labelMap.config(image=photo)")
         exec("self.labelMap.image = photo")
 
+    def freshStartGame(self):#表示其余玩家已经可以点击开始游戏按钮进入游戏
+        exec("self.buttonStart['state'] = tk.NORMAL")
+
     def freshAll(self, client):
-        #exec("self.buttonStart['state'] = tk.DISABLED")
+        exec("self.buttonStart['state'] = tk.DISABLED")
         for i in range(1, 9):
             exec("self.buttonPerson{id}['state'] = tk.DISABLED".format(id=i))
             exec("self.buttonMap{id}['state'] = tk.DISABLED".format(id=i))

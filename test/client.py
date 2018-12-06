@@ -1,6 +1,6 @@
 import socket
 import threading
-
+import random
 
 class GameClient():
     def __init__(self):
@@ -14,9 +14,11 @@ class GameClient():
         self.string = ''  # 存放大厅中的聊天信息
         self.choose = 0  # 当前界面是哪个类，0：大厅，1：房间，2：游戏
         self.nowRoomPerson = []  # 存放当前房间位置是否有人,名字和所选颜色(flag,name,color)
+        self.roomStart = [0 for _ in range(401)]
         self.owner = ''  # 存放房主位置
         self.live = 1 #判断自己是否死亡1：存活，2：死亡
         self.sum = 0 #记录房间中有几人
+        self.seed = 0 #房间道具初始化种子
 
     def init(self, user, pwd):
         self.ip_port = ("127.0.0.1", 20000)  # 服务端ip和port
@@ -103,6 +105,7 @@ class GameClient():
                 self.nowRoomPerson[int(data[1])][2] = data[2]
                 roomFrame.freshPersonColor(int(data[1]), data[2])
             if data[0] == 'map':
+                self.room[int(data[1])][1] = data[2]
                 if self.rid == int(data[1]):
                     self.map = data[2]
                     roomFrame.freshMap(self.map)
@@ -117,13 +120,15 @@ class GameClient():
                 bombGame.alivenum -= 1
                 if self.pos != int(data[1]):
                     bombGame.freshDead(int(data[1]))
-            if data[0] == 'sendStartGame':
-                if self.pos == int(data[1]):
+            if data[0] == 'startGame':
+                self.roomStart[int(data[1])] = 1
+                if self.rid == int(data[1]):
                     self.choose = 2
-                    for item in self.nowRoomPerson:
-                        if item[0] == 1:
-                            self.sum += 1
-                    bombGame.alivenum = self.sum
+                    print(self.sum)
+                    self.seed = int(data[2])
+                    print(self.owner,int(data[3]))
+                    if self.owner != self.pos and self.owner == int(data[3]):
+                        roomFrame.freshStartGame()
 
     # 请求所有已创建的房间信息
     def askAllCreatedRoom(self):
@@ -188,7 +193,13 @@ class GameClient():
 
     # 开始游戏
     def startGame(self):
-        self.listenerSend.sendto('startGame;{rid}'.format(rid=self.rid).encode(), self.ip_port)
+        self.sum = 0
+        for item in self.nowRoomPerson:
+            if item[0] == 1:
+                self.sum += 1
+        seed = random.randint(1,10)
+        print(self.rid,self.pos,self.owner,"startGame")
+        self.listenerSend.sendto('startGame;{rid};{seed};{pos}'.format(rid=self.rid,seed=seed,pos=self.pos).encode(), self.ip_port)
         self.choose = 2
 
     # 信息传输
@@ -221,9 +232,6 @@ class GameClient():
     def sendDead(self):
         self.listenerSend.sendto('sendDead;{rid};{pos}'.format(rid=self.rid,pos=self.pos).encode(),self.ip_port)
 
-    # 发送游戏开始信息
-    def sendStartGame(self):
-        self.listenerSend.sendto('sendStartGame;{rid};{pos}'.format(rid=self.rid,pos=self.pos).encode(),self.ip_port)
 
 def gaming(c):
     c.run()

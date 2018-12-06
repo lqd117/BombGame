@@ -36,7 +36,9 @@ def main():
         elif client.choose == 1:
             roomFrame.run(client)
         elif client.choose == 2:
-            bombgame.init(client.sum)
+            print('------',client.sum)
+            bombgame.alivenum = client.sum
+            bombgame.init(client.nowRoomPerson)
             bombgame.run(client)
 
 
