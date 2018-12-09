@@ -93,10 +93,14 @@ class Hall():
 
         ft = tkFont.Font(size=15)
 
+        imgpath5 = 'photos/1.gif'
+        img5 = Image.open(imgpath5)
+        photo5 = ImageTk.PhotoImage(img5)
+
         self.allText = tk.StringVar()
         self.allText.set('')
-        self.labelPerson = tk.Label(self.root, textvariable=self.allText, bg='white', justify="left", font=ft,
-                                    anchor=tk.SW)
+        self.labelPerson = tk.Label(self.root, textvariable=self.allText, bg='white',
+                                    image=photo5,compound=tk.CENTER,justify="left", font=ft)
 
         self.text = tk.Entry(font=ft)
         self.text.bind('<Key-Return>', lambda x: self.go(client))
@@ -122,29 +126,33 @@ class Hall():
             exec('self.buttonRoomtext{id} = tk.StringVar()'.format(id=i))
             exec("self.buttonRoomtext{id}.set('NO\\nROOM')".format(id=i))
 
-        self.buttonRoom1 = tk.Button(self.root, textvariable=self.buttonRoomtext1,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        imgpath3 = 'photos/room12.gif'
+        img3 = Image.open(imgpath3)
+        photo3 = ImageTk.PhotoImage(img3)
+
+        self.buttonRoom1 = tk.Button(self.root, textvariable=self.buttonRoomtext1, image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1,  state=tk.DISABLED,
                                      command=lambda: self.room(1, client))
-        self.buttonRoom2 = tk.Button(self.root, textvariable=self.buttonRoomtext2,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        self.buttonRoom2 = tk.Button(self.root, textvariable=self.buttonRoomtext2,image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1,  state=tk.DISABLED,
                                      command=lambda: self.room(2, client))
-        self.buttonRoom3 = tk.Button(self.root, textvariable=self.buttonRoomtext3,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        self.buttonRoom3 = tk.Button(self.root, textvariable=self.buttonRoomtext3,image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1,  state=tk.DISABLED,
                                      command=lambda: self.room(3, client))
-        self.buttonRoom4 = tk.Button(self.root, textvariable=self.buttonRoomtext4,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        self.buttonRoom4 = tk.Button(self.root, textvariable=self.buttonRoomtext4,image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1,  state=tk.DISABLED,
                                      command=lambda: self.room(4, client))
-        self.buttonRoom5 = tk.Button(self.root, textvariable=self.buttonRoomtext5,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        self.buttonRoom5 = tk.Button(self.root, textvariable=self.buttonRoomtext5,image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1,  state=tk.DISABLED,
                                      command=lambda: self.room(5, client))
-        self.buttonRoom6 = tk.Button(self.root, textvariable=self.buttonRoomtext6,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        self.buttonRoom6 = tk.Button(self.root, textvariable=self.buttonRoomtext6,image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1,  state=tk.DISABLED,
                                      command=lambda: self.room(6, client))
-        self.buttonRoom7 = tk.Button(self.root, textvariable=self.buttonRoomtext7,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        self.buttonRoom7 = tk.Button(self.root, textvariable=self.buttonRoomtext7,image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1, state=tk.DISABLED,
                                      command=lambda: self.room(7, client))
-        self.buttonRoom8 = tk.Button(self.root, textvariable=self.buttonRoomtext8,
-                                     bg='white', font=ft1, anchor=tk.N, state=tk.DISABLED,
+        self.buttonRoom8 = tk.Button(self.root, textvariable=self.buttonRoomtext8,image=photo3,compound=tk.CENTER,
+                                     bg='white', font=ft1,  state=tk.DISABLED,
                                      command=lambda: self.room(8, client))
 
         for i in range(1, 9):

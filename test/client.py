@@ -21,7 +21,7 @@ class GameClient():
         self.seed = 0 #房间道具初始化种子
 
     def init(self, user, pwd):
-        self.ip_port = ("127.0.0.1", 20000)  # 服务端ip和port
+        self.ip_port = ("39.107.241.25", 20000)  # 服务端ip和port
         self.listenerSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.listenerRecv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rid, self.pos, self.map = 0, 0, 0
@@ -42,6 +42,7 @@ class GameClient():
         self.nowRoomPerson = []  # 存放当前房间位置是否有人,名字和所选颜色(flag,name,color)
         self.owner = -1  # 存放房主位置
         self.sendLiveFlag = 0 #判断是否发送了死亡信息
+        self.startFlag = 0 #判断自己是否开始游戏来决定是否接受数据
 
     # 接受并处理广播的信息，这里包括游戏中的信息,函数外开启线程
 
@@ -115,11 +116,13 @@ class GameClient():
                     roomFrame.root.stop()
             if data[0] == 'gaming':
                 print(data)
-                bombGame.freshPlayer(int(data[1]),int(data[2]))
+                if self.startFlag == 1:
+                    bombGame.freshPlayer(int(data[1]),int(data[2]))
             if data[0] == 'dead':
                 bombGame.alivenum -= 1
-                if self.pos != int(data[1]):
-                    bombGame.freshDead(int(data[1]))
+                if self.startFlag == 1:
+                    if self.pos != int(data[1]):
+                        bombGame.freshDead(int(data[1]))
             if data[0] == 'startGame':
                 self.roomStart[int(data[1])] = 1
                 if self.rid == int(data[1]):
@@ -194,6 +197,7 @@ class GameClient():
     # 开始游戏
     def startGame(self):
         self.sum = 0
+        self.startFlag = 1
         for item in self.nowRoomPerson:
             if item[0] == 1:
                 self.sum += 1

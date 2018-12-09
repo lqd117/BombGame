@@ -90,7 +90,7 @@ class RoomFrame():
         self.allText.set(string)
 
     def freshPersonColor(self, pos, color):
-        exec("imgpath = 'photos/roomperson.gif'")
+        exec("imgpath = 'photos/pika.gif'")
         exec("img = Image.open(imgpath)")
         exec("photo = ImageTk.PhotoImage(img)")
         exec("self.buttonPerson{id}.config(image=photo)".format(id=pos))
@@ -119,7 +119,7 @@ class RoomFrame():
                 if client.nowRoomPerson[i][0] == 0:
                     continue
                 exec("self.buttonPerson{id}['state'] = tk.NORMAL".format(id=i + 1))
-        exec("imgpath = 'photos/roomperson.gif'")
+        exec("imgpath = 'photos/map.gif'")
         exec("img = Image.open(imgpath)")
         exec("photo = ImageTk.PhotoImage(img)")
         exec("self.labelMap.config(image=photo)")
@@ -134,7 +134,7 @@ class RoomFrame():
             else:
                 exec(
                     "self.buttonPersonFlag{id}.set('        {name}')".format(id=i + 1, name=client.nowRoomPerson[i][1]))
-            exec("imgpath{id} = 'photos//roomperson.gif'".format(id=i + 1))
+            exec("imgpath{id} = 'photos/pika.gif'".format(id=i + 1))
             exec("img{id} = Image.open(imgpath{id})".format(id=i + 1))
             exec("photo{id} = ImageTk.PhotoImage(img{id})".format(id=i + 1))
             exec("self.buttonPerson{id}.config(image=photo{id})".format(id=i + 1))

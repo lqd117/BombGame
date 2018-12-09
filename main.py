@@ -404,16 +404,34 @@ class game():
 
             pygame.display.update()
             self.clock.tick(60)
-            if self.alivenum == 1:
-                time.sleep(2)
+
         client.choose = 1
-        self.screen = pygame.display.set_mode((1,1))
+
         for each_player in player.player_list:  # 绘制出所有还存活的玩家
             if each_player.alive:
                 each_player.alive = False
 
+        client.startFlag = 0
+        self.end_game = True
+        while self.end_game:
+            self.screen.blit(self.end_game_scene, (0, 0))
+            self.screen.blit(self.player2_fire_num, (690, 300))
+            self.screen.blit(self.player2_bomb_num, (690, 375))
+            self.screen.blit(self.player2_speed, (690, 445))
+            self.screen.blit(self.player2_score, (690, 510))
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    exit()
+                elif event.type == MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    if 640 <= x and x <= 830 and 600 <= y and y <= 640:
+                        self.end_game = False
+            pygame.display.flip()
+            self.clock.tick(60)
 
-       # pygame.quit()
+        self.screen = pygame.display.set_mode((1, 1))
+
+    # pygame.quit()
 
     def mapchange(self, choose,seed):
         self.map_choose = choose
